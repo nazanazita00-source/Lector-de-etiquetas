@@ -1,2 +1,127 @@
-# Lector-de-etiquetas
-Introduciendo el código de barras te proporcionará información sobre la etiqueta
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Lector de Productos</title>
+
+<style>
+.lector-etiquetas {
+  background-color: #f2f2f2;
+  border-radius: 15px;
+  width: 80%;
+  max-width: 700px;
+  margin: 100px auto;
+  padding: 40px;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.lector-etiquetas h1 {
+  color: #006400;
+  margin-bottom: 20px;
+}
+
+.lector-etiquetas input {
+  width: 100%;
+  border: 2px solid #006400;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 1em;
+  margin-bottom: 20px;
+}
+
+.lector-etiquetas button {
+  background-color: #006400;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.lector-etiquetas button:hover {
+  background-color: #2e8b57;
+}
+
+#resultado {
+  margin-top: 30px;
+  font-size: 1em;
+  color: #333;
+  text-align: left;
+}
+</style>
+
+</head>
+<body>
+
+<section class="lector-etiquetas">
+  <h1>Analiza un producto</h1>
+  <p>Introduce el código de barras del producto que quieras analizar:</p>
+
+  <input type="text" id="producto" placeholder="Ejemplo: 8410076470912">
+  <button id="buscar">Buscar producto</button>
+
+  <div id="resultado"></div>
+</section>
+
+<script>
+document.getElementById("buscar").addEventListener("click", async function() {
+  const query = document.getElementById("producto").value.trim();
+  const resultado = document.getElementById("resultado");
+
+  if (!query) {
+    resultado.innerHTML = "⚠️ Por favor, introduce un nombre o código de barras.";
+    return;
+  }
+
+  resultado.innerHTML = "🔍 Buscando producto...";
+
+  try {
+    let url = "";
+
+    if (/^\d+$/.test(query)) {
+      url = `https://world.openfoodfacts.org/api/v2/product/${query}.json`;
+    } else {
+      url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=1`;
+    }
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    let product = null;
+    if (data.product) {
+      product = data.product;
+    } else if (data.products && data.products.length > 0) {
+      product = data.products[0];
+    }
+
+    if (!product) {
+      resultado.innerHTML = "❌ Producto no encontrado. Intenta con otro nombre o código.";
+      return;
+    }
+
+    const nombre = product.product_name_es || "Nombre no disponible";
+    const marca = product.brands || "Desconocida";
+    const ingredientes = product.ingredients_text_es || "No especificados";
+    const nutriscore = product.nutriscore_grade ? product.nutriscore_grade.toUpperCase() : "Sin información";
+
+    resultado.innerHTML = `
+      <h3>${nombre}</h3>
+      <p><strong>Marca:</strong> ${marca}</p>
+      <p><strong>Ingredientes:</strong> ${ingredientes}</p>
+      <p><strong>NutriScore:</strong> ${nutriscore}</p>
+      ${product.image_front_url
+        ? `<img src="${product.image_front_url}" alt="Imagen del producto" style="max-width:200px;border-radius:10px;margin-top:10px;">`
+        : ""}
+    `;
+  } catch (error) {
+    resultado.innerHTML = "⚠️ Error al conectar con la base de datos. Inténtalo de nuevo.";
+    console.error(error);
+  }
+});
+</script>
+
+</body>
+</html>
